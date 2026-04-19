@@ -644,7 +644,7 @@ async function scanCrypto(symbol){
 }
 
 async function binanceKlines(symbol,interval,limit){
-  const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
+  const r=await fetch(`https://pushover-proxy.mfs10533.workers.dev/binance/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
   if(!r.ok) throw new Error('Binance HTTP '+r.status);
   const d=await r.json();
   if(!Array.isArray(d)) return null;
