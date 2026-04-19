@@ -465,9 +465,9 @@ function init(){
   const so=JSON.parse(localStorage.getItem('opts')||'{}');
   if(Object.keys(so).length){ opts={...opts,...so}; ['alerts','sound','crypto','stocks'].forEach(k=>{ const e=document.getElementById('toggle'+k[0].toUpperCase()+k.slice(1)); if(e) e.classList.toggle('on',opts[k]); }); }
   setMode(mode,true);
-  // Hardcode watchlists if empty
-  if(!stockList.length){ stockList=[...STOCK_DEF]; localStorage.setItem('sl',JSON.stringify(stockList)); }
-  if(!cryptoList.length){ cryptoList=[...CRYPTO_DEF]; localStorage.setItem('cl',JSON.stringify(cryptoList)); }
+  // Always reset to hardcoded defaults (ensures correct CoinGecko IDs)
+  stockList=[...STOCK_DEF]; localStorage.setItem('sl',JSON.stringify(stockList));
+  cryptoList=[...CRYPTO_DEF]; localStorage.setItem('cl',JSON.stringify(cryptoList));
   renderLists(); updateStats(); clock();
   log('info','Scanner ready. CoinGecko crypto = no key needed. Stocks = Alpha Vantage key or DEMO.');
   if(Notification.permission==='default') Notification.requestPermission();
@@ -653,7 +653,7 @@ async function runScan(){
   document.getElementById('statLast').textContent=new Date().toLocaleTimeString();
   const cl=mode!=='stocks'?cryptoList:[];
   const sl=mode!=='crypto'?stockList:[];
-  if(cl.length){ log('crypto','Scanning '+cl.length+' crypto coins via CoinGecko...'); for(const p of cl){ await scanCrypto(p); await wait(300); } }
+  if(cl.length){ log('crypto','Scanning '+cl.length+' crypto coins via CoinGecko...'); for(const p of cl){ await scanCrypto(p); await wait(1200); } }
   if(sl.length){
     if(!apiKey){log('warn','No stock API key — skipping. Enter key or DEMO.');return;}
     log('info','Scanning '+sl.length+' stocks...'); for(const t of sl){ await scanStock(t); await wait(1500); }
