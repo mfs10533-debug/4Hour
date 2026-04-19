@@ -252,14 +252,14 @@ header { display:flex; align-items:center; justify-content:space-between; margin
 <div class="config-grid">
   <div class="api-card stocks-card" id="stocksApiCard">
     <div class="api-card-header">
-      <div class="api-card-title stocks">📈 Stocks — Alpha Vantage</div>
-      <span class="api-badge key-req">KEY REQUIRED</span>
+      <div class="api-card-title stocks">📈 Stocks — Finnhub</div>
+      <span class="api-badge free">FREE — 60 CALLS/MIN</span>
     </div>
     <div class="api-row">
-      <input class="api-input" id="apiKeyInput" placeholder="Paste Alpha Vantage key or type DEMO..." />
+      <input class="api-input" id="apiKeyInput" placeholder="Paste Finnhub key or type DEMO..." />
       <button class="btn btn-secondary" onclick="saveApiKey()">SAVE</button>
     </div>
-    <div class="api-note">Free key at <a href="https://www.alphavantage.co/support/#api-key" target="_blank">alphavantage.co</a> — 25 req/day &nbsp;|&nbsp; Type <strong style="color:var(--gold)">DEMO</strong> to simulate</div>
+    <div class="api-note">Free key at <a href="https://finnhub.io" target="_blank">finnhub.io</a> — 60 calls/min, no daily cap &nbsp;|&nbsp; Type <strong style="color:var(--gold)">DEMO</strong> to simulate</div>
   </div>
   <div class="api-card crypto-card">
     <div class="api-card-header">
@@ -411,6 +411,7 @@ let alerts = [], assetData = {};
 let opts = { alerts:true, sound:true, crypto:true, stocks:true, pushover:true };
 let buys = 0, sells = 0, activeFilter = 'all';
 let poUserKey = localStorage.getItem('po_ukey') || '';
+let finnhubKey = localStorage.getItem('fh_key') || '';
 let poToken   = localStorage.getItem('po_token') || '';
 const PO_API  = 'https://api.pushover.net/1/messages.json'; // kept for reference
 
@@ -455,7 +456,8 @@ function cIcon(id){ const sym = CG_SYMBOLS[id] || id.replace(/USDT|BUSD$/,''); r
 // ═══════════════════════════════════════════════════════
 function init(){
   // Hardcoded keys — always pre-loaded
-  if(!apiKey){ apiKey='8C77R1WPRJZO9JN0'; localStorage.setItem('av_key', apiKey); }
+  if(!apiKey){ apiKey='d7ifrlpr01qn2qats830d7ifrlpr01qn2qats83g'; localStorage.setItem('av_key', apiKey); }
+  if(!finnhubKey){ finnhubKey=''; } // User must enter Finnhub key — free at finnhub.io
   if(!poUserKey){ poUserKey='urabofd1xhabiui16jfhimeo4225zx'; localStorage.setItem('po_ukey', poUserKey); }
   if(!poToken){ poToken='a1jq6hqb1bkk492oaf2au565ut65vr'; localStorage.setItem('po_token', poToken); }
   document.getElementById('apiKeyInput').value=apiKey; setStockDot(true);
@@ -499,7 +501,7 @@ function saveApiKey(){
   apiKey=document.getElementById('apiKeyInput').value.trim();
   if(!apiKey){log('err','Enter a key or DEMO.');return;}
   localStorage.setItem('av_key',apiKey); setStockDot(true);
-  log('ok','Stock key saved. Mode: '+(apiKey.toUpperCase()==='DEMO'?'SIMULATION':'LIVE'));
+  log('ok','Finnhub key saved. 60 calls/min, no daily cap. Mode: '+(apiKey.toUpperCase()==='DEMO'?'SIMULATION':'LIVE'));
 }
 function setStockDot(ok){ document.getElementById('stockDot').className='dot '+(ok?'green':'red'); document.getElementById('stockStatus').textContent='STOCKS: '+(ok?(apiKey.toUpperCase()==='DEMO'?'DEMO':'LIVE'):'NO KEY'); }
 
@@ -681,8 +683,8 @@ async function scanCrypto(coinId){
 
 async function cgOHLC(coinId, days){
   // CoinGecko OHLC endpoint — free, no key, US accessible
-  const url = `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
-  const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const url = `https://pushover-proxy.mfs10533.workers.dev/cg/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
+  const r = await fetch(url);
   if(!r.ok) throw new Error('CoinGecko HTTP '+r.status);
   const d = await r.json();
   if(!Array.isArray(d)||!d.length) return null;
@@ -713,12 +715,21 @@ async function scanStock(ticker){
 }
 
 async function avIntraday(ticker,interval){
-  const r=await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${ticker}&interval=${interval}&outputsize=compact&apikey=${apiKey}`);
-  const j=await r.json();
-  if(j['Note']||j['Information']){log('warn','Alpha Vantage rate limit hit. 25 req/day free.');return null;}
-  const key=`Time Series (${interval})`;
-  if(!j[key]) return null;
-  return Object.entries(j[key]).map(([t,v])=>({time:t,open:+v['1. open'],high:+v['2. high'],low:+v['3. low'],close:+v['4. close']})).reverse();
+  // Finnhub stock candles — free, 60 calls/min, no daily cap
+  const resMap = {'60min':'60','15min':'15'};
+  const res = resMap[interval] || '60';
+  const now = Math.floor(Date.now()/1000);
+  const from = now - (7*24*60*60); // last 7 days
+  const url = `https://pushover-proxy.mfs10533.workers.dev/fh/stock/candle?symbol=${ticker}&resolution=${res}&from=${from}&to=${now}&token=${apiKey}`;
+  const r = await fetch(url);
+  if(!r.ok){ log('warn',ticker+': Finnhub HTTP '+r.status); return null; }
+  const j = await r.json();
+  if(!j||j.s==='no_data'||!j.t){ log('warn',ticker+': no Finnhub data'); return null; }
+  // Finnhub returns arrays: t=timestamps, o=open, h=high, l=low, c=close
+  return j.t.map((ts,i)=>({
+    time: new Date(ts*1000).toISOString(),
+    open:j.o[i], high:j.h[i], low:j.l[i], close:j.c[i]
+  }));
 }
 
 function groupTo4H(candles){
