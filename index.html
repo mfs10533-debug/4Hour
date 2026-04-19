@@ -414,8 +414,8 @@ let poUserKey = localStorage.getItem('po_ukey') || '';
 let poToken   = localStorage.getItem('po_token') || '';
 const PO_API  = 'https://api.pushover.net/1/messages.json'; // kept for reference
 
-const STOCK_DEF = ['SPY','QQQ','AAPL','MSFT','NVDA','TSLA','AMZN','META'];
-const CRYPTO_DEF = ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','DOGEUSDT','ADAUSDT','AVAXUSDT'];
+const STOCK_DEF = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL', 'SOFI', 'BRK.B', 'V'];
+const CRYPTO_DEF = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'TRXUSDT', 'LINKUSDT', 'DOTUSDT', 'MATICUSDT', 'LTCUSDT', 'SHIBUSDT', 'UNIUSDT', 'ATOMUSDT', 'ETCUSDT', 'XLMUSDT', 'BCHUSDT', 'APTUSDT', 'FILUSDT', 'ARBUSDT', 'OPUSDT', 'NEARUSDT', 'INJUSDT', 'VETUSDT', 'ICPUSDT', 'HBARUSDT', 'RUNEUSDT', 'QNTUSDT', 'ALGOUSDT', 'EGLDUSDT', 'AAVEUSDT', 'SANDUSDT', 'MANAUSDT', 'AXSUSDT', 'THETAUSDT', 'XTZUSDT', 'EOSUSDT', 'MKRUSDT', 'SNXUSDT', 'COMPUSDT', 'ZILUSDT', 'KSMUSDT', 'CRVUSDT', 'GRTUSDT', 'APEUSDT', 'FTMUSDT', 'SUIUSDT', 'SEIUSDT'];
 
 const CICONS = {BTC:'₿',ETH:'Ξ',SOL:'◎',BNB:'⬡',XRP:'✦',DOGE:'Ð',ADA:'₳',AVAX:'🔺',LINK:'🔗',DOT:'●',MATIC:'⬟',LTC:'Ł',SUI:'💧',APT:'🌀'};
 function cIcon(pair){ const b=pair.replace(/USDT|BUSD|BTC$/,''); return CICONS[b]||'🪙'; }
@@ -424,14 +424,20 @@ function cIcon(pair){ const b=pair.replace(/USDT|BUSD|BTC$/,''); return CICONS[b
 // INIT
 // ═══════════════════════════════════════════════════════
 function init(){
-  if(apiKey){ document.getElementById('apiKeyInput').value=apiKey; setStockDot(true); }
-  // Load Pushover keys
-  if(poUserKey) document.getElementById('poUserKey').value=poUserKey;
-  if(poToken)   document.getElementById('poToken').value=poToken;
+  // Hardcoded keys — always pre-loaded
+  if(!apiKey){ apiKey='8C77R1WPRJZO9JN0'; localStorage.setItem('av_key', apiKey); }
+  if(!poUserKey){ poUserKey='urabofd1xhabiui16jfhimeo4225zx'; localStorage.setItem('po_ukey', poUserKey); }
+  if(!poToken){ poToken='a1jq6hqb1bkk492oaf2au565ut65vr'; localStorage.setItem('po_token', poToken); }
+  document.getElementById('apiKeyInput').value=apiKey; setStockDot(true);
+  document.getElementById('poUserKey').value=poUserKey;
+  document.getElementById('poToken').value=poToken;
   if(poUserKey && poToken) setPoDot(true);
   const so=JSON.parse(localStorage.getItem('opts')||'{}');
   if(Object.keys(so).length){ opts={...opts,...so}; ['alerts','sound','crypto','stocks'].forEach(k=>{ const e=document.getElementById('toggle'+k[0].toUpperCase()+k.slice(1)); if(e) e.classList.toggle('on',opts[k]); }); }
   setMode(mode,true);
+  // Hardcode watchlists if empty
+  if(!stockList.length){ stockList=[...STOCK_DEF]; localStorage.setItem('sl',JSON.stringify(stockList)); }
+  if(!cryptoList.length){ cryptoList=[...CRYPTO_DEF]; localStorage.setItem('cl',JSON.stringify(cryptoList)); }
   renderLists(); updateStats(); clock();
   log('info','Scanner ready. Binance crypto = no key needed. Stocks = Alpha Vantage key or DEMO.');
   if(Notification.permission==='default') Notification.requestPermission();
