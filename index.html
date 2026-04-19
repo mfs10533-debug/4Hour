@@ -234,7 +234,7 @@ header { display:flex; align-items:center; justify-content:space-between; margin
   <div class="status-bar">
     <div class="status-pill"><div class="dot grey" id="scanDot"></div><span id="scanStatus">IDLE</span></div>
     <div class="status-pill"><div class="dot grey" id="stockDot"></div><span id="stockStatus">STOCKS: NO KEY</span></div>
-    <div class="status-pill"><div class="dot green"></div><span style="color:var(--purple)">CRYPTO: LIVE</span></div>
+    <div class="status-pill"><div class="dot green"></div><span style="color:var(--purple)">CRYPTO: COINGECKO</span></div>
     <div class="status-pill" style="color:var(--text3);font-size:10px;">🕐 <span id="clockEl">--:--:--</span></div>
   </div>
 </header>
@@ -263,11 +263,11 @@ header { display:flex; align-items:center; justify-content:space-between; margin
   </div>
   <div class="api-card crypto-card">
     <div class="api-card-header">
-      <div class="api-card-title crypto">₿ Crypto — Binance Public API</div>
+      <div class="api-card-title crypto">₿ Crypto — CoinGecko API</div>
       <span class="api-badge free">NO KEY NEEDED</span>
     </div>
-    <div style="font-size:12px;color:var(--text2);padding:8px 0;font-family:var(--mono);">✅ Live data from Binance — completely free, no sign-up required.</div>
-    <div class="api-note" style="color:var(--purple)">Add pairs like <strong>BTCUSDT · ETHUSDT · SOLUSDT</strong> — USDT auto-appended if omitted</div>
+    <div style="font-size:12px;color:var(--text2);padding:8px 0;font-family:var(--mono);">✅ Live data from CoinGecko — free, no key, fully US accessible.</div>
+    <div class="api-note" style="color:var(--purple)">Add coins by symbol: <strong>BTC · ETH · SOL · DOGE</strong> — auto-converted to CoinGecko format</div>
   </div>
 </div>
 
@@ -414,11 +414,41 @@ let poUserKey = localStorage.getItem('po_ukey') || '';
 let poToken   = localStorage.getItem('po_token') || '';
 const PO_API  = 'https://api.pushover.net/1/messages.json'; // kept for reference
 
-const STOCK_DEF = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL', 'SOFI', 'BRK.B', 'V'];
-const CRYPTO_DEF = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'TRXUSDT', 'LINKUSDT', 'DOTUSDT', 'MATICUSDT', 'LTCUSDT', 'SHIBUSDT', 'UNIUSDT', 'ATOMUSDT', 'ETCUSDT', 'XLMUSDT', 'BCHUSDT', 'APTUSDT', 'FILUSDT', 'ARBUSDT', 'OPUSDT', 'NEARUSDT', 'INJUSDT', 'VETUSDT', 'ICPUSDT', 'HBARUSDT', 'RUNEUSDT', 'QNTUSDT', 'ALGOUSDT', 'EGLDUSDT', 'AAVEUSDT', 'SANDUSDT', 'MANAUSDT', 'AXSUSDT', 'THETAUSDT', 'XTZUSDT', 'EOSUSDT', 'MKRUSDT', 'SNXUSDT', 'COMPUSDT', 'ZILUSDT', 'KSMUSDT', 'CRVUSDT', 'GRTUSDT', 'APEUSDT', 'FTMUSDT', 'SUIUSDT', 'SEIUSDT'];
 
-const CICONS = {BTC:'₿',ETH:'Ξ',SOL:'◎',BNB:'⬡',XRP:'✦',DOGE:'Ð',ADA:'₳',AVAX:'🔺',LINK:'🔗',DOT:'●',MATIC:'⬟',LTC:'Ł',SUI:'💧',APT:'🌀'};
-function cIcon(pair){ const b=pair.replace(/USDT|BUSD|BTC$/,''); return CICONS[b]||'🪙'; }
+const SYMBOL_TO_CG = {
+  'BTC':'bitcoin','ETH':'ethereum','BNB':'binancecoin','SOL':'solana','XRP':'ripple',
+  'DOGE':'dogecoin','ADA':'cardano','AVAX':'avalanche-2','TRX':'tron','LINK':'chainlink',
+  'DOT':'polkadot','MATIC':'matic-network','LTC':'litecoin','SHIB':'shiba-inu','UNI':'uniswap',
+  'ATOM':'cosmos','ETC':'ethereum-classic','XLM':'stellar','BCH':'bitcoin-cash','APT':'aptos',
+  'FIL':'filecoin','ARB':'arbitrum','OP':'optimism','NEAR':'near','INJ':'injective-protocol',
+  'VET':'vechain','ICP':'internet-computer','HBAR':'hedera-hashgraph','RUNE':'thorchain',
+  'QNT':'quant-network','ALGO':'algorand','EGLD':'elrond-erd-2','AAVE':'aave',
+  'SAND':'the-sandbox','MANA':'decentraland','AXS':'axie-infinity','THETA':'theta-token',
+  'XTZ':'tezos','EOS':'eos','MKR':'maker','SNX':'havven','COMP':'compound-governance-token',
+  'ZIL':'zilliqa','KSM':'kusama','CRV':'curve-dao-token','GRT':'the-graph',
+  'APE':'apecoin','FTM':'fantom','SUI':'sui','SEI':'sei-network'
+};
+const STOCK_DEF = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL', 'SOFI', 'BRK.B', 'V'];
+const CRYPTO_DEF = ['bitcoin','ethereum','binancecoin','solana','ripple','dogecoin','cardano','avalanche-2','tron','chainlink','polkadot','matic-network','litecoin','shiba-inu','uniswap','cosmos','ethereum-classic','stellar','bitcoin-cash','aptos','filecoin','arbitrum','optimism','near','injective-protocol','vechain','internet-computer','hedera-hashgraph','thorchain','quant-network','algorand','elrond-erd-2','aave','the-sandbox','decentraland','axie-infinity','theta-token','tezos','eos','maker','havven','compound-governance-token','zilliqa','kusama','curve-dao-token','the-graph','apecoin','fantom','sui','sei-network'];
+
+// Map CoinGecko ID to display symbol
+const CG_SYMBOLS = {
+  'bitcoin':'BTC','ethereum':'ETH','binancecoin':'BNB','solana':'SOL','ripple':'XRP',
+  'dogecoin':'DOGE','cardano':'ADA','avalanche-2':'AVAX','tron':'TRX','chainlink':'LINK',
+  'polkadot':'DOT','matic-network':'MATIC','litecoin':'LTC','shiba-inu':'SHIB','uniswap':'UNI',
+  'cosmos':'ATOM','ethereum-classic':'ETC','stellar':'XLM','bitcoin-cash':'BCH','aptos':'APT',
+  'filecoin':'FIL','arbitrum':'ARB','optimism':'OP','near':'NEAR','injective-protocol':'INJ',
+  'vechain':'VET','internet-computer':'ICP','hedera-hashgraph':'HBAR','thorchain':'RUNE',
+  'quant-network':'QNT','algorand':'ALGO','elrond-erd-2':'EGLD','aave':'AAVE',
+  'the-sandbox':'SAND','decentraland':'MANA','axie-infinity':'AXS','theta-token':'THETA',
+  'tezos':'XTZ','eos':'EOS','maker':'MKR','havven':'SNX','compound-governance-token':'COMP',
+  'zilliqa':'ZIL','kusama':'KSM','curve-dao-token':'CRV','the-graph':'GRT',
+  'apecoin':'APE','fantom':'FTM','sui':'SUI','sei-network':'SEI'
+};
+function cgSymbol(id){ return CG_SYMBOLS[id] || id.toUpperCase().substring(0,6); }
+
+const CICONS = {BTC:'₿',ETH:'Ξ',SOL:'◎',BNB:'⬡',XRP:'✦',DOGE:'Ð',ADA:'₳',AVAX:'🔺',LINK:'🔗',DOT:'●',MATIC:'⬟',LTC:'Ł',SUI:'💧',APT:'🌀',SHIB:'🐕',UNI:'🦄',ATOM:'⚛',XLM:'✨',BCH:'₿',FIL:'📁',ARB:'🔵',OP:'🔴',NEAR:'🔷',INJ:'💉',VET:'✅',ICP:'∞',HBAR:'ħ',RUNE:'᚛',QNT:'Q',ALGO:'◆',EGLD:'⚡',AAVE:'👻',SAND:'🏖',MANA:'🌐',AXS:'🎮',THETA:'θ',XTZ:'ꜩ',EOS:'ε',MKR:'Μ',SNX:'⚗',COMP:'🏛',ZIL:'Z',KSM:'⚫',CRV:'〜',GRT:'📊',APE:'🦍',FTM:'👻',SEI:'🌊'};
+function cIcon(id){ const sym = CG_SYMBOLS[id] || id.replace(/USDT|BUSD$/,''); return CICONS[sym]||'🪙'; }
 
 // ═══════════════════════════════════════════════════════
 // INIT
@@ -439,7 +469,7 @@ function init(){
   if(!stockList.length){ stockList=[...STOCK_DEF]; localStorage.setItem('sl',JSON.stringify(stockList)); }
   if(!cryptoList.length){ cryptoList=[...CRYPTO_DEF]; localStorage.setItem('cl',JSON.stringify(cryptoList)); }
   renderLists(); updateStats(); clock();
-  log('info','Scanner ready. Binance crypto = no key needed. Stocks = Alpha Vantage key or DEMO.');
+  log('info','Scanner ready. CoinGecko crypto = no key needed. Stocks = Alpha Vantage key or DEMO.');
   if(Notification.permission==='default') Notification.requestPermission();
 }
 
@@ -540,7 +570,8 @@ function addTicker(){
   let t=inp.value.trim().toUpperCase();
   if(!t) return;
   if(type==='crypto'){
-    if(!/USDT|BUSD|BTC$/.test(t)) t+='USDT';
+    // CoinGecko uses coin IDs like 'bitcoin', 'ethereum' — convert common symbols
+    t = SYMBOL_TO_CG[t] || t.toLowerCase();
     if(cryptoList.includes(t)){inp.value='';return;}
     cryptoList.push(t); localStorage.setItem('cl',JSON.stringify(cryptoList));
     log('crypto','Added crypto: '+t);
@@ -622,7 +653,7 @@ async function runScan(){
   document.getElementById('statLast').textContent=new Date().toLocaleTimeString();
   const cl=mode!=='stocks'?cryptoList:[];
   const sl=mode!=='crypto'?stockList:[];
-  if(cl.length){ log('crypto','Scanning '+cl.length+' crypto pairs via Binance...'); for(const p of cl){ await scanCrypto(p); await wait(300); } }
+  if(cl.length){ log('crypto','Scanning '+cl.length+' crypto coins via CoinGecko...'); for(const p of cl){ await scanCrypto(p); await wait(300); } }
   if(sl.length){
     if(!apiKey){log('warn','No stock API key — skipping. Enter key or DEMO.');return;}
     log('info','Scanning '+sl.length+' stocks...'); for(const t of sl){ await scanStock(t); await wait(1500); }
@@ -630,25 +661,36 @@ async function runScan(){
 }
 
 // ═══════════════════════════════════════════════════════
-// CRYPTO — Binance API (FREE, no key)
+// CRYPTO — CoinGecko API (FREE, no key, US friendly)
 // ═══════════════════════════════════════════════════════
-async function scanCrypto(symbol){
+async function scanCrypto(coinId){
   try {
-    const [h4,m15]=await Promise.all([binanceKlines(symbol,'4h',60),binanceKlines(symbol,'15m',100)]);
-    if(!h4||!m15){log('err',symbol+': no Binance data');return;}
-    const result=analyze(symbol,h4,m15,'crypto');
-    assetData[symbol]=result; renderTable();
-    if(result.signal&&opts.crypto) fireAlert(symbol,result,'crypto');
-    log('crypto',symbol+': '+(result.signal||'WATCHING')+' | 4H '+result.h4Trend+' | '+result.stage);
-  } catch(e){ log('err',symbol+': '+e.message); }
+    const sym = cgSymbol(coinId);
+    const [h4,m15] = await Promise.all([
+      cgOHLC(coinId, 1),   // 1 day = 4H candles (6 per day)
+      cgOHLC(coinId, 0.5)  // 0.5 days = ~30min candles used as 15M proxy
+    ]);
+    if(!h4||!m15){log('err',sym+': no data');return;}
+    const result=analyze(sym,h4,m15,'crypto');
+    result.coinId = coinId;
+    assetData[sym]=result; renderTable();
+    if(result.signal&&opts.crypto) fireAlert(sym,result,'crypto');
+    log('crypto',sym+': '+(result.signal||'WATCHING')+' | 4H '+result.h4Trend+' | '+result.stage);
+  } catch(e){ log('err',coinId+': '+e.message); }
 }
 
-async function binanceKlines(symbol,interval,limit){
-  const r=await fetch(`https://pushover-proxy.mfs10533.workers.dev/binance/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
-  if(!r.ok) throw new Error('Binance HTTP '+r.status);
-  const d=await r.json();
-  if(!Array.isArray(d)) return null;
-  return d.map(k=>({time:new Date(k[0]).toISOString(),open:+k[1],high:+k[2],low:+k[3],close:+k[4],volume:+k[5]}));
+async function cgOHLC(coinId, days){
+  // CoinGecko OHLC endpoint — free, no key, US accessible
+  const url = `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
+  const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if(!r.ok) throw new Error('CoinGecko HTTP '+r.status);
+  const d = await r.json();
+  if(!Array.isArray(d)||!d.length) return null;
+  // CoinGecko OHLC format: [timestamp, open, high, low, close]
+  return d.map(k=>({
+    time: new Date(k[0]).toISOString(),
+    open:+k[1], high:+k[2], low:+k[3], close:+k[4]
+  }));
 }
 
 // ═══════════════════════════════════════════════════════
